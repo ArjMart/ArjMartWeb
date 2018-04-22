@@ -16,4 +16,6 @@ import javax.ws.rs.NameBinding;
 @Target({TYPE,METHOD})
 public @interface Authorized {
 	
+	boolean preSecured() default false;
+	
 }

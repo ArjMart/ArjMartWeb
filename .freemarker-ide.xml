@@ -1,9 +1,21 @@
 <config>
 	<context-values>
+		<resource path="WebContent/WEB-INF/freemarker/search.ftl">
+			<value key="items" object-class="java.util.List" item-class="com.arjvik.arjmart.api.item.Item"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/cart.ftl">
+			<value key="cart" object-class="com.arjvik.arjmart.web.SuperOrderLine"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/account.ftl">
+			<value key="user" object-class="com.arjvik.arjmart.api.user.User"/>
+		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/add-to-cart.ftl">
 			<value key="item" object-class="com.arjvik.arjmart.api.item.Item"/>
 			<value key="orderLine" object-class="com.arjvik.arjmart.api.order.OrderLine"/>
 			<value key="itemAttribute" object-class="com.arjvik.arjmart.api.item.ItemAttribute"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/item.ftl">
+			<value key="item" object-class="com.arjvik.arjmart.api.item.Item"/>
 		</resource>
 	</context-values>
 	<macro-library>

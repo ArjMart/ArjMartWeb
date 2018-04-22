@@ -3,6 +3,7 @@ package com.arjvik.arjmart.web;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -88,9 +89,9 @@ public class WebResource {
 		ItemResourceClient client = ResourceClientProvider.get(ItemResourceClient.class, session);
 		Item item = client.getItem(SKU).readEntity(Item.class);
 		List<ItemAttribute> attributes = client.getAllAttribute(SKU).readEntity(new GenericType<List<ItemAttribute>>(){});
-		List<HashMap<String,Object>> attributeWithPrices = new ArrayList<>();
+		List<Map<String,Object>> attributeWithPrices = new ArrayList<>();
 		for (ItemAttribute attribute : attributes) {
-			HashMap<String, Object> map = new HashMap<>();
+			Map<String, Object> map = new HashMap<>();
 			map.put("attribute", attribute);
 			ItemPrice price = client.getPrice(SKU, attribute.getID()).readEntity(ItemPrice.class);
 			map.put("price", price.getPrice());
@@ -233,13 +234,32 @@ public class WebResource {
 	}
 	
 	@GET
+	@Template(name="/cart")
+	@Authorized
+	@Path("cart") public Response viewCart() {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		ItemResourceClient itemClient = ResourceClientProvider.get(ItemResourceClient.class, session);
+		Order cart = orderClient.getOrAddCart().readEntity(Order.class);
+		List<OrderLine> lines = orderClient.getOrderLines(cart.getOrderID()).readEntity(new GenericType<List<OrderLine>>(){});
+		List<SuperOrderLine> cartItems = new ArrayList<>();
+		for (OrderLine line : lines) {
+			Item item = itemClient.getItem(line.getSKU()).readEntity(Item.class);
+			ItemAttribute itemAttribute = itemClient.getAttribute(line.getSKU(), line.getItemAttributeID()).readEntity(ItemAttribute.class);
+			ItemPrice price = itemClient.getPrice(line.getSKU(), line.getItemAttributeID()).readEntity(ItemPrice.class);
+			SuperOrderLine superOrderLine = new SuperOrderLine(line, item, itemAttribute, price);
+			cartItems.add(superOrderLine);
+		}
+		return Response.ok(view("cart",cartItems)).build();
+	}	
+	
+	
+	//-----------------------------------------------------------------------------------------------------------
+	
+	@GET
 	@Template(name="/404")
 	@Path("{all:.*}") public Response notFound(@PathParam("all") String path) {
 		return Response.status(Status.NOT_FOUND).entity(view()).build();
 	}
-	
-	//-----------------------------------------------------------------------------------------------------------
-	
 
 	private Session session;
 	private UriInfo uriInfo;
@@ -257,18 +277,21 @@ public class WebResource {
 	private static Object[] cachedUrlParams;
 	
 	private Object[] getUrlParams(){
-		if(cachedUrlParams == null)
+		if(cachedUrlParams == null || true)
 			cachedUrlParams = new Object[]{
 				"cssURL",				buildUriSpecial("resources/style.css"),
 				"homeURL",				buildUri("home"),
 				"searchURL",			buildUri("search"),
 				"accountURL",			buildUri("myAccount"),
-				"cartURL",				"NOT IMPLEMENTED YET",
+				"cartURL",				buildUri("viewCart"),
 				"loginURL",				buildUri("login"),
 				"logoutURL",			buildUri("logout"),
 				"itemURL",				buildUriSpecial("item"),
 				"addToCardURL",			buildUri("handleAddToCart"),
 				"pastOrdersURL",		"NOT IMPLEMENTED YET",
+				"editCartQuantityURL",	"NOT IMPLEMENTED YET",
+				"removeFromCartURL",	"NOT IMPLEMENTED YET",
+				"checkoutURL",			"NOT IMPLEMENTED YET",
 			};
 		return cachedUrlParams;
 	}
