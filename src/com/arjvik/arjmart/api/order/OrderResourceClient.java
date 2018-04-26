@@ -27,6 +27,10 @@ public interface OrderResourceClient {
 	@Path("{ID}")
 	public Response getOrder(@PathParam("ID") int ID);
 	
+	@GET
+	@Path("{ID}/total")
+	public Response getOrderTotal(@PathParam("ID") int ID);
+	
 	@POST
 	public Response getOrAddCart();
 	

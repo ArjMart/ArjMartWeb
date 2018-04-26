@@ -3,7 +3,7 @@
 <#include "include/header.ftl">
 <body>
 	<#include "include/navbar.ftl">
-	<h1>Welcome to ArjMart!</h1>
-	<h3><a href="${searchURL}">Browse our catalog</a></h3>
+	<h1>Yay! Checkout success!</h1>
+	<h2><a href="${pastOrdersURL}">Click here to view and track your past orders</a></h2>
 </body>
 </html>

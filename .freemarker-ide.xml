@@ -5,9 +5,17 @@
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/cart.ftl">
 			<value key="cart" object-class="com.arjvik.arjmart.web.SuperOrderLine"/>
+			<value key="total" object-class="com.arjvik.arjmart.api.order.OrderTotal"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/checkout.ftl">
+			<value key="total" object-class="com.arjvik.arjmart.api.order.OrderTotal"/>
+			<value key="creditCard" object-class="java.lang.String"/>
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/account.ftl">
 			<value key="user" object-class="com.arjvik.arjmart.api.user.User"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/edit-quantity.ftl">
+			<value key="orderLine" object-class="com.arjvik.arjmart.web.SuperOrderLine"/>
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/add-to-cart.ftl">
 			<value key="item" object-class="com.arjvik.arjmart.api.item.Item"/>
@@ -16,6 +24,9 @@
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/item.ftl">
 			<value key="item" object-class="com.arjvik.arjmart.api.item.Item"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/checkout-failed.ftl">
+			<value key="error" object-class="java.lang.String"/>
 		</resource>
 	</context-values>
 	<macro-library>

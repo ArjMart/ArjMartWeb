@@ -14,7 +14,6 @@
 				<th>Quantity</th>
 				<th>Total Price</th>
 			</tr>
-			<#assign subtotal = 0>
 			<#items as item>
 				<tr>
 					<td><a href="${itemURL}/${item.SKU}">${item.itemName}</a></td>
@@ -23,19 +22,19 @@
 					<td>${item.price?string.currency}</td>
 					<td>${item.quantity} (<a href="${editCartQuantityURL}?id=${item.orderLineID}">Edit</a>)</td>
 					<td>${(item.quantity * item.price)?string.currency}</td>
-					<#assign subtotal += item.quantity * item.price>
+					<td><a href="${removeFromCartURL}?id=${item.orderLineID}">Remove</a></td>
 				</tr>
 			</#items>
 			<tr>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td></td>
+				<td colspan="4"></td>
 				<th>Subtotal</th>
-				<td>${subtotal?string.currency}</td>
+				<td>${total.total?string.currency}</td>
+			</tr>
+			<tr>
+				<td colspan="4"></td>
+				<td><a href="${checkoutURL}">Checkout!</a></td>
+			</tr>
 		</table>
-		<br>
-		<center><a href="${checkoutURL}">Checkout!</a></center>
 	<#else>
 		<h2>
 			Unfortunately, there is nothing in your cart. But you can still fix that! <br/>

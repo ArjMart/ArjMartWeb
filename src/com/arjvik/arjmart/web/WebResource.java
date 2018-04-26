@@ -20,7 +20,6 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
 import org.glassfish.jersey.process.internal.RequestScoped;
@@ -36,6 +35,7 @@ import com.arjvik.arjmart.api.item.ItemResourceClient;
 import com.arjvik.arjmart.api.order.Order;
 import com.arjvik.arjmart.api.order.OrderLine;
 import com.arjvik.arjmart.api.order.OrderResourceClient;
+import com.arjvik.arjmart.api.order.OrderTotal;
 import com.arjvik.arjmart.api.order.Quantity;
 import com.arjvik.arjmart.api.user.User;
 import com.arjvik.arjmart.api.user.UserID;
@@ -51,19 +51,19 @@ public class WebResource {
 	
 	@GET
 	@Template(name="/index")
-	public WebpageEntity root() {
+	public Response root() {
 		return home();
 	}
 	
 	@GET
 	@Template(name="/index")
-	@Path("home") public WebpageEntity home() {
-		return view();
+	@Path("home") public Response home() {
+		return Response.ok(view()).build();
 	}
 
 	@GET
 	@Template(name="/search")
-	@Path("search") public WebpageEntity search(@QueryParam("query") String query, @QueryParam("page") @DefaultValue("1") int page, @QueryParam("limit") @DefaultValue("-1") int limit) {
+	@Path("search") public Response search(@QueryParam("query") String query, @QueryParam("page") @DefaultValue("1") int page, @QueryParam("limit") @DefaultValue("-1") int limit) {
 		if(limit==-1)
 			limit = DEFAULT_RECORD_LIMIT;
 		else
@@ -79,13 +79,13 @@ public class WebResource {
 		entity.put("resultCount", count);
 		if(page < pageCount)
 			entity.put("nextPage", page+1);
-		return entity;
+		return Response.ok(entity).build();
 	}
 	
 	@GET
 	@Template(name="/item")
 	@ErrorTemplate(name="/item-not-found")
-	@Path("item/{SKU:[0-9]+}") public WebpageEntity getItem(@PathParam("SKU") int SKU) throws ItemNotFoundException {
+	@Path("item/{SKU:[0-9]+}") public Response getItem(@PathParam("SKU") int SKU) throws ItemNotFoundException {
 		ItemResourceClient client = ResourceClientProvider.get(ItemResourceClient.class, session);
 		Item item = client.getItem(SKU).readEntity(Item.class);
 		List<ItemAttribute> attributes = client.getAllAttribute(SKU).readEntity(new GenericType<List<ItemAttribute>>(){});
@@ -97,16 +97,16 @@ public class WebResource {
 			map.put("price", price.getPrice());
 			attributeWithPrices.add(map);
 		}
-		return view("item",item,"attributes",attributeWithPrices);
+		return Response.ok(view("item",item,"attributes",attributeWithPrices)).build();
 	}
 	
 	@GET
 	@Template(name="/login")
-	@Path("login") public WebpageEntity login(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @QueryParam("error") String error) {
+	@Path("login") public Response login(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @QueryParam("error") String error) {
 		WebpageEntity entity = view("redirect", redirect);
 		if(error!=null)
 			entity.put("errorMessage", error);
-		return entity;
+		return Response.ok(entity).build();
 	}
 	
 	@POST
@@ -120,13 +120,15 @@ public class WebResource {
 		case 401:
 		case 403:
 			session.remove("user");
-			return Response.ok(login(redirect, "Incorrect email or password")).build();
+			return login(redirect, "Incorrect email or password");
 		case 200:
 			int userID = response.readEntity(UserID.class).getID();
 			User user2 = client.getUser(userID).readEntity(User.class);
 			session.put("user", user2);
-			return Response.seeOther(UriBuilder.fromResource(WebResource.class)
-						   					   .path(redirect).build())
+			return Response.seeOther(uriInfo.getBaseUriBuilder()
+											.path(WebResource.class)
+											.path(redirect)
+											.build())
 						   .build();
 		default:
 			throw new RuntimeException();
@@ -136,9 +138,16 @@ public class WebResource {
 	@GET
 	@Path("logout") public Response logout() {
 		session.remove("user");
-		return Response.temporaryRedirect(UriBuilder.fromResource(WebResource.class)
-													.build())
+		return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
+												 .path(WebResource.class)
+												 .build())
 					   .build();
+	}
+	
+	@GET
+	@Template(name="/signup")
+	@Path("signup") public Response signup() {
+		return null; //TODO
 	}
 	
 	@GET
@@ -249,8 +258,131 @@ public class WebResource {
 			SuperOrderLine superOrderLine = new SuperOrderLine(line, item, itemAttribute, price);
 			cartItems.add(superOrderLine);
 		}
-		return Response.ok(view("cart",cartItems)).build();
-	}	
+		OrderTotal total = orderClient.getOrderTotal(cart.getOrderID()).readEntity(OrderTotal.class);
+		return Response.ok(view("cart",cartItems,"total",total)).build();
+	}
+	
+	@GET
+	@Template(name="/edit-quantity")
+	@Authorized
+	@Path("editQuantity") public Response editCartQuantity(@QueryParam("id") int orderLineID) {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		ItemResourceClient itemClient = ResourceClientProvider.get(ItemResourceClient.class, session);
+		Order cart = orderClient.getOrAddCart().readEntity(Order.class);
+		OrderLine line = orderClient.getOrderLine(cart.getOrderID(), orderLineID).readEntity(OrderLine.class);
+		Item item = itemClient.getItem(line.getSKU()).readEntity(Item.class);
+		ItemAttribute itemAttribute = itemClient.getAttribute(line.getSKU(), line.getItemAttributeID()).readEntity(ItemAttribute.class);
+		ItemPrice price = itemClient.getPrice(line.getSKU(), line.getItemAttributeID()).readEntity(ItemPrice.class);
+		SuperOrderLine superOrderLine = new SuperOrderLine(line, item, itemAttribute, price);
+		return Response.ok(view("orderLine",superOrderLine)).build();
+	}
+	
+	@POST
+	@Authorized
+	@Path("editQuantity") public Response handleEditCartQuantity(@FormParam("quantity") int quantity, @FormParam("id") int ID) {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		Order order = orderClient.getOrAddCart().readEntity(Order.class);
+		Quantity q = new Quantity(quantity);
+		orderClient.editOrderLine(q, order.getOrderID(), ID);
+		return Response.seeOther(uriInfo.getBaseUriBuilder()
+										.path(WebResource.class, "viewCart")
+										.build())
+					   .build();
+	}
+	
+	@GET
+	@Authorized
+	@Path("removeFromCart") public Response removeFromCart(@QueryParam("id") int ID) {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		Order order = orderClient.getOrAddCart().readEntity(Order.class);
+		orderClient.deleteOrderLine(order.getOrderID(), ID);
+		return Response.seeOther(uriInfo.getBaseUriBuilder()
+										.path(WebResource.class, "viewCart")
+										.build())
+					   .build();
+	}
+	
+	@GET
+	@Authorized
+	@Template(name="/checkout")
+	@Path("checkout") public Response checkout() {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		Order cart = orderClient.getOrAddCart().readEntity(Order.class);
+		List<OrderLine> lines = orderClient.getOrderLines(cart.getOrderID()).readEntity(new GenericType<List<OrderLine>>(){});
+		if(lines.isEmpty())
+			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
+													 .path(WebResource.class)
+													 .build())
+						   .build();
+		OrderTotal total = orderClient.getOrderTotal(cart.getOrderID()).readEntity(OrderTotal.class);
+		User oldUser = (User) session.get("user");
+		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
+		Response response = client.getUser(oldUser.getID());
+		if(response.getStatus()!=200)
+			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
+													 .path(WebResource.class, "checkout")
+													 .queryParam("error", "Something went wrong. Please login again.")
+													 .queryParam("redirect", "myAccount")
+													 .build())
+						   .build();
+		User user = response.readEntity(User.class);
+		session.put("user", user);
+		return Response.ok(view("creditCard",user.getCreditCardNumber(),"total",total)).build();
+	}
+	
+	@GET
+	@Authorized
+	@Path("handleCheckout") public Response handleCheckout() {
+		OrderResourceClient orderClient = ResourceClientProvider.get(OrderResourceClient.class, session);
+		Order cart = orderClient.getOrAddCart().readEntity(Order.class);
+		Response response = orderClient.checkout(cart.getOrderID());
+		switch(response.getStatus()) {
+		case 200:
+		case 204:
+			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
+													 .path(WebResource.class,"checkoutSuccess")
+													 .build())
+						   .build();
+		case 402:
+		case 409:
+			String error = response.getStatus() == 402 ? "payment" :
+						   response.getStatus() == 409 ? "invalidState" :
+														 "unknown";
+			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
+													 .path(WebResource.class,"checkoutFailed")
+													 .queryParam("error", error)
+													 .build())
+						   .build();
+		default:
+			throw new RuntimeException();
+		}
+	}
+	
+	@GET
+	@Authorized
+	@Template(name="/checkout-success")
+	@Path("checkoutSuccess") public Response checkoutSuccess() {
+		return Response.ok(view()).build();
+	}
+	
+	@GET
+	@Authorized
+	@Template(name="/checkout-failed")
+	@Path("checkoutFailed") public Response checkoutFailed(@QueryParam("error") @DefaultValue("unknown") String error) {
+		String errorMsg;
+		switch(error) {
+		case "payment":
+			errorMsg = "Error charging credit card, please try again (Hint: payments ending in 69 cents are declined)";
+			break;
+		case "invalidState":
+			errorMsg = "Error checking out, order was already checked out";
+			break;
+		default:
+			errorMsg = "Unknown error, please try again";
+		}
+		return Response.ok(view("error",errorMsg)).build();
+	}
+	
 	
 	
 	//-----------------------------------------------------------------------------------------------------------
@@ -286,12 +418,14 @@ public class WebResource {
 				"cartURL",				buildUri("viewCart"),
 				"loginURL",				buildUri("login"),
 				"logoutURL",			buildUri("logout"),
+				"signupURL",			buildUri("signup"),
 				"itemURL",				buildUriSpecial("item"),
 				"addToCardURL",			buildUri("handleAddToCart"),
 				"pastOrdersURL",		"NOT IMPLEMENTED YET",
-				"editCartQuantityURL",	"NOT IMPLEMENTED YET",
-				"removeFromCartURL",	"NOT IMPLEMENTED YET",
-				"checkoutURL",			"NOT IMPLEMENTED YET",
+				"editCartQuantityURL",	buildUri("editCartQuantity"),
+				"removeFromCartURL",	buildUri("removeFromCart"),
+				"checkoutURL",			buildUri("checkout"),
+				"handleCheckoutURL",	buildUri("handleCheckout"),
 			};
 		return cachedUrlParams;
 	}

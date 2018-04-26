@@ -3,11 +3,12 @@
 <#include "include/header.ftl">
 <body>
 	<#include "include/navbar.ftl">
-	<h1>Added ${orderLine.quantity} ${item.name}<#if orderLine.quantity gt 1>s</#if> to cart</h1>
+	<#include "include/pluralize.ftl">
+	<h1>Added ${orderLine.quantity} ${pluralize(item.name,orderLine.quantity)} to cart</h1>
 	<h3>
 		Color: ${itemAttribute.color} <br/>
 		Size: ${itemAttribute.size}
 	</h3>
-	<h1><a href="${cartURL}">View cart</a></h1>
+	<h2><a href="${cartURL}">View cart</a></h2>
 </body>
 </html>
