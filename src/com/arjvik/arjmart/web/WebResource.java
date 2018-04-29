@@ -134,7 +134,7 @@ public class WebResource {
 			throw new RuntimeException();
 		}
 	}
-	
+
 	@GET
 	@Path("logout") public Response logout() {
 		session.remove("user");
@@ -146,17 +146,43 @@ public class WebResource {
 	
 	@GET
 	@Template(name="/signup")
-	@Path("signup") public Response signup() {
-		return null; //TODO
+	@Path("signup") public Response signup(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @QueryParam("error") String error) {
+		WebpageEntity entity = view("redirect", redirect);
+		if(error!=null)
+			entity.put("errorMessage", error);
+		return Response.ok(entity).build();
+	}
+	
+	@POST
+	@Template(name="/signup")
+	@Path("signup") public Response handleSignup(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @FormParam("email") String email, @FormParam("password") String password, @FormParam("creditCardNumber") String creditCardNumber) {
+		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
+		User user = new User(-1,email,password,creditCardNumber);
+		Response response = client.addUser(user);
+		switch(response.getStatus()){
+		case 409:
+			return signup(redirect,"Email already exists");
+		case 200:
+		case 201:
+			user = response.readEntity(User.class);
+			session.put("user", user);
+			return Response.seeOther(uriInfo.getBaseUriBuilder()
+											.path(WebResource.class)
+											.path(redirect)
+											.build())
+						   .build();
+		default:
+			throw new RuntimeException();
+		}
 	}
 	
 	@GET
 	@Template(name="/account")
 	@Authorized
 	@Path("myAccount") public Response myAccount() {
-		User oldUser = (User) session.get("user");
+		User user = (User) session.get("user");
 		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
-		Response response = client.getUser(oldUser.getID());
+		Response response = client.getUser(user.getID());
 		if(response.getStatus()!=200)
 			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
 													 .path(WebResource.class, "login")
@@ -164,8 +190,8 @@ public class WebResource {
 													 .queryParam("redirect", "myAccount")
 													 .build())
 						   .build();
-		User user = response.readEntity(User.class);
-		session.put("user", user);
+		User newUser = response.readEntity(User.class);
+		user.setCreditCardNumber(newUser.getCreditCardNumber());
 		return Response.ok(view("user", user)).build();
 	}
 	
@@ -174,7 +200,9 @@ public class WebResource {
 	@Authorized
 	@Path("myAccount") public Response myAccountEditCreditCardNumber(@FormParam("creditCardNumber") String creditCardNumber) {
 		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
-		Response response = client.getUser(((User) session.get("user")).getID());
+		User user = (User) session.get("user");
+		user.setCreditCardNumber(creditCardNumber);
+		Response response = client.editCreditCardNumber(user,user.getID());
 		if(response.getStatus()!=200)
 			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
 													 .path(WebResource.class, "login")
@@ -182,10 +210,6 @@ public class WebResource {
 													 .queryParam("redirect", "myAccount")
 													 .build())
 						   .build();
-		User user = response.readEntity(User.class);
-		user.setCreditCardNumber(creditCardNumber);
-		client.editCreditCardNumber(user,user.getID());
-		session.put("user", user);
 		return Response.ok(view("user",user)).build();
 	}
 	
@@ -315,9 +339,9 @@ public class WebResource {
 													 .build())
 						   .build();
 		OrderTotal total = orderClient.getOrderTotal(cart.getOrderID()).readEntity(OrderTotal.class);
-		User oldUser = (User) session.get("user");
+		User user = (User) session.get("user");
 		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
-		Response response = client.getUser(oldUser.getID());
+		Response response = client.getUser(user.getID());
 		if(response.getStatus()!=200)
 			return Response.temporaryRedirect(uriInfo.getBaseUriBuilder()
 													 .path(WebResource.class, "checkout")
@@ -325,8 +349,8 @@ public class WebResource {
 													 .queryParam("redirect", "myAccount")
 													 .build())
 						   .build();
-		User user = response.readEntity(User.class);
-		session.put("user", user);
+		User newUser = response.readEntity(User.class);
+		user.setCreditCardNumber(newUser.getCreditCardNumber());
 		return Response.ok(view("creditCard",user.getCreditCardNumber(),"total",total)).build();
 	}
 	
@@ -383,6 +407,39 @@ public class WebResource {
 		return Response.ok(view("error",errorMsg)).build();
 	}
 	
+	@GET
+	@Authorized
+	@Template(name="/past-orders")
+	@Path("pastOrders") public Response pastOrders() {
+		User user = (User) session.get("user");
+		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
+		List<Order> orders = client.getUserOrders(user.getID()).readEntity(new GenericType<List<Order>>(){});
+		return Response.ok(view("orders", orders)).build();
+	}
+	
+	@GET
+	@Authorized
+	@Template(name="/order-status")
+	@Path("orderStatus/{ID}") public Response orderStatus(@PathParam("ID") int ID) {
+		OrderResourceClient client = ResourceClientProvider.get(OrderResourceClient.class, session);
+		Response response = client.getOrder(ID);
+		if(response.getStatus()!=200)
+			throw new RuntimeException();
+		Order order = response.readEntity(Order.class);
+		OrderTotal orderTotal = client.getOrderTotal(ID).readEntity(OrderTotal.class);
+		List<OrderLine> orderLines = client.getOrderLines(ID).readEntity(new GenericType<List<OrderLine>>(){});
+		List<SuperOrderLine> superOrderLines = new ArrayList<>();
+		ItemResourceClient itemClient = ResourceClientProvider.get(ItemResourceClient.class, session);
+		for (OrderLine line : orderLines) {
+			Item item = itemClient.getItem(line.getSKU()).readEntity(Item.class);
+			ItemAttribute itemAttribute = itemClient.getAttribute(line.getSKU(), line.getItemAttributeID()).readEntity(ItemAttribute.class);
+			ItemPrice itemPrice = itemClient.getPrice(line.getSKU(), line.getItemAttributeID()).readEntity(ItemPrice.class);
+			SuperOrderLine superOrderLine = new SuperOrderLine(line, item, itemAttribute, itemPrice);
+			superOrderLines.add(superOrderLine);
+		}
+		return Response.ok(view("order", order, "total", orderTotal, "orderLines", superOrderLines)).build();
+	}
+	
 	
 	
 	//-----------------------------------------------------------------------------------------------------------
@@ -409,7 +466,7 @@ public class WebResource {
 	private static Object[] cachedUrlParams;
 	
 	private Object[] getUrlParams(){
-		if(cachedUrlParams == null || true)
+		if(cachedUrlParams == null)
 			cachedUrlParams = new Object[]{
 				"cssURL",				buildUriSpecial("resources/style.css"),
 				"homeURL",				buildUri("home"),
@@ -421,7 +478,8 @@ public class WebResource {
 				"signupURL",			buildUri("signup"),
 				"itemURL",				buildUriSpecial("item"),
 				"addToCardURL",			buildUri("handleAddToCart"),
-				"pastOrdersURL",		"NOT IMPLEMENTED YET",
+				"pastOrdersURL",		buildUri("pastOrders"),
+				"orderDetailsURL",		buildUriSpecial("orderStatus"),
 				"editCartQuantityURL",	buildUri("editCartQuantity"),
 				"removeFromCartURL",	buildUri("removeFromCart"),
 				"checkoutURL",			buildUri("checkout"),
@@ -437,7 +495,5 @@ public class WebResource {
 	private String buildUriSpecial(String path) {
 		return uriInfo.getBaseUriBuilder().path(path).build().toString();
 	}
-	
-	
 	
 }

@@ -15,14 +15,16 @@
 			</#if>
 			<tr>
 				<td><label for="email">Email:</label></td>
-				<td><input id="email" name="email" type="email"/></td>
+				<td><input id="email" name="email" type="email" required/></td>
 			</tr>
 			<tr>
 				<td><label for="password">Password:</label></td>
-				<td><input id="password" name="password" type="password"/></td>
+				<td><input id="password" name="password" type="password" required/></td>
 			</tr>
 		</table>
 		<input type="submit" value="Login"/>
 	</form>
+	No account, no problem!
+	<a href="${signupURL}?redirect=${redirect}" method="post">Sign up!</a>
 </body>
 </html>

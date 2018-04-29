@@ -3,13 +3,21 @@
 		<resource path="WebContent/WEB-INF/freemarker/search.ftl">
 			<value key="items" object-class="java.util.List" item-class="com.arjvik.arjmart.api.item.Item"/>
 		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/past-orders.ftl">
+			<value key="orders" object-class="java.util.List" item-class="com.arjvik.arjmart.api.order.Order"/>
+		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/cart.ftl">
-			<value key="cart" object-class="com.arjvik.arjmart.web.SuperOrderLine"/>
 			<value key="total" object-class="com.arjvik.arjmart.api.order.OrderTotal"/>
+			<value key="cart" object-class="java.util.List" item-class="com.arjvik.arjmart.web.SuperOrderLine"/>
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/checkout.ftl">
 			<value key="total" object-class="com.arjvik.arjmart.api.order.OrderTotal"/>
 			<value key="creditCard" object-class="java.lang.String"/>
+		</resource>
+		<resource path="WebContent/WEB-INF/freemarker/order-status.ftl">
+			<value key="total" object-class="com.arjvik.arjmart.api.order.OrderTotal"/>
+			<value key="orderLines" object-class="java.util.List" item-class="com.arjvik.arjmart.web.SuperOrderLine"/>
+			<value key="order" object-class="com.arjvik.arjmart.api.order.Order"/>
 		</resource>
 		<resource path="WebContent/WEB-INF/freemarker/account.ftl">
 			<value key="user" object-class="com.arjvik.arjmart.api.user.User"/>

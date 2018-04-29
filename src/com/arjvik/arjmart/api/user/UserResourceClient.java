@@ -33,5 +33,9 @@ public interface UserResourceClient {
 	@DELETE
 	@Path("{ID}")
 	public Response deleteUser(@PathParam("ID") int ID);
+	
+	@GET
+	@Path("{ID}/orders")
+	public Response getUserOrders(@PathParam("ID") int ID);
 
 }
