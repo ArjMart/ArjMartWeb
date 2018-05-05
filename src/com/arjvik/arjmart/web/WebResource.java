@@ -112,7 +112,7 @@ public class WebResource {
 	@POST
 	@Template(name="/login")
 	@Path("login") public Response handleLogin(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @FormParam("email") String email, @FormParam("password") String password) {
-		User user = new User(-1, email, password, null, -1);
+		User user = new User(-1, email, password, null);
 		session.put("user", user);
 		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
 		Response response = client.getUserID();
@@ -157,7 +157,7 @@ public class WebResource {
 	@Template(name="/signup")
 	@Path("signup") public Response handleSignup(@QueryParam("redirect") @DefaultValue("myAccount") String redirect, @FormParam("email") String email, @FormParam("password") String password, @FormParam("creditCardNumber") String creditCardNumber) {
 		UserResourceClient client = ResourceClientProvider.get(UserResourceClient.class, session);
-		User user = new User(-1,email,password,creditCardNumber,-1);
+		User user = new User(-1,email,password,creditCardNumber);
 		Response response = client.addUser(user);
 		switch(response.getStatus()){
 		case 409:

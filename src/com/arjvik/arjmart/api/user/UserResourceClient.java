@@ -23,10 +23,6 @@ public interface UserResourceClient {
 	@Path("{ID}")
 	public Response getUser(@PathParam("ID") int ID);
 	
-	@GET
-	@Path("UUID/{UUID}")
-	public Response getUserBuUUID(@PathParam("UUID") int UUID);
-	
 	@POST
 	public Response addUser(User user);
 	

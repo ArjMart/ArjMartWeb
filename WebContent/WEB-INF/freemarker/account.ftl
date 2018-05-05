@@ -5,8 +5,7 @@
 	<#include "include/navbar.ftl">
 	<h1>My Account</h1>
 	<h3><a href="${pastOrdersURL}">See my past orders</a></h3>
-	Email: ${user.email}<br/>
-	Unique Login Code: ${user.UUID?c}<br/>
+	Email: ${user.email}
 	<form action="${accountURL}" method="POST">
 		Edit my credit card number: <input name="creditCardNumber" type="number" value="${user.creditCardNumber}"/>
 		<input type="submit" value="Save"/>
