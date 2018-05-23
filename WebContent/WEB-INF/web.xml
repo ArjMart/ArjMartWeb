@@ -28,17 +28,4 @@
     <filter-name>Jersey Web Application</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
-  
-  <!-- DEBUG -->
-  <servlet>
-    <servlet-name>DebugSessionServlet</servlet-name>
-    <servlet-class>com.arjvik.arjmart.web.debug.DebugSessionServlet</servlet-class>
-  </servlet>
-  <servlet-mapping>
-    <servlet-name>DebugSessionServlet</servlet-name>
-    <url-pattern>/debug/sessions</url-pattern>
-  </servlet-mapping>
-  <listener>
-      <listener-class>com.arjvik.arjmart.web.debug.DebugSessionServlet</listener-class>
-  </listener>
 </web-app>
