@@ -17,6 +17,10 @@
       <param-value>/WEB-INF/freemarker</param-value>
     </init-param>
     <init-param>
+      <param-name>jersey.config.server.mvc.factory.freemarker</param-name>
+      <param-value>com.arjvik.arjmart.web.FreemarkerConfigurationFactory</param-value>
+    </init-param>
+    <init-param>
       <param-name>jersey.config.servlet.filter.staticContentRegex</param-name>
       <param-value>
 				(/(image|js|css|resources|debug)/?.*)|(/.*.(html|jsp))|
