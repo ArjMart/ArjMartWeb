@@ -17,6 +17,10 @@
       <param-value>/WEB-INF/freemarker</param-value>
     </init-param>
     <init-param>
+      <param-name>jersey.config.server.mvc.factory.freemarker</param-name>
+      <param-value>com.arjvik.arjmart.web.FreemarkerConfigurationFactory</param-value>
+    </init-param>
+    <init-param>
       <param-name>jersey.config.servlet.filter.staticContentRegex</param-name>
       <param-value>
 				(/(image|js|css|resources|debug)/?.*)|(/.*.(html|jsp))|
@@ -28,17 +32,4 @@
     <filter-name>Jersey Web Application</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
-  
-  <!-- DEBUG -->
-  <servlet>
-    <servlet-name>DebugSessionServlet</servlet-name>
-    <servlet-class>com.arjvik.arjmart.web.debug.DebugSessionServlet</servlet-class>
-  </servlet>
-  <servlet-mapping>
-    <servlet-name>DebugSessionServlet</servlet-name>
-    <url-pattern>/debug/sessions</url-pattern>
-  </servlet-mapping>
-  <listener>
-      <listener-class>com.arjvik.arjmart.web.debug.DebugSessionServlet</listener-class>
-  </listener>
 </web-app>
